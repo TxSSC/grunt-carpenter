@@ -13,53 +13,63 @@ var marked = require('marked'),
 
 module.exports = function(grunt) {
 
-  grunt.registerMultiTask('carpenter', 'Your task description goes here.', function() {
+  // Set Defaults, should be configurable in Multi-Task
+  var defaults = {
+    layoutFolder: "templates/layouts",
+    templatesFolder: "templates"
+  };
 
-    // Merge task-specific and/or target-specific options with these defaults.
-    var options = this.options({
-      layoutFolder: "templates/layouts",
-      templatesFolder: "templates"
-    });
+  grunt.registerMultiTask('carpenter', 'Your task description goes here.', function() {
+    var self = this;
 
     this.files.forEach(function(f) {
-      options.destination = f.dest;
 
       f.src.forEach(function(item) {
+
+        var options = grunt.util._.clone(defaults);
+        options.destination = f.dest;
+
         if(grunt.file.isDir(item)) {
           expandFolder(item, options);
-          return false;
         }
-
-        writeFile(item, options);
       });
     });
   });
 
   var expandFolder = function(dir, options) {
-    var config;
+    var files = grunt.file.expand(dir + '/*'),
+        config = options || {},
+        folders = [];
 
-    grunt.file.recurse(dir, function(abspath, rootdir, subdir, filename) {
+    // Check for a data.json file and load config
+    files.forEach(function(file) {
+      var filename = file.split('/').pop();
       if(filename === 'data.json') {
-        config = grunt.file.readJSON(abspath);
-
-        grunt.util._.merge(options, config);
-
-        options.layout = config.layout ?
-          grunt.file.read(options.layoutFolder + "/"  + config.layout) : "{{{content}}}";
-
-        options.template = config.template ?
-          grunt.file.read(options.templatesFolder + "/"  + config.template) : "{{{content}}}";
-
-        return false;
+        var data = grunt.file.readJSON(file);
+        config = grunt.util._.merge(options, data);
       }
-
-      if(grunt.file.isDir(abspath)) {
-        expandFolder(abspath, options);
-        return false;
-      }
-
-      writeFile(abspath, options);
     });
+
+    // Create the filetree giving priority to top level files
+    files.forEach(function(file) {
+      if(grunt.file.isDir(file)) {
+        folders.push(file);
+        return false;
+      }
+
+      var filename = file.split('/').pop();
+      if(filename !== 'data.json') {
+        var data = grunt.util._.clone(config);
+        data = loadLayouts(data);
+        writeFile(file, data);
+      }
+    });
+
+    // Expand Each Folder
+    folders.forEach(function(folder) {
+      expandFolder(folder, config);
+    });
+
   };
 
   var writeFile = function(path, options) {
@@ -85,6 +95,18 @@ module.exports = function(grunt) {
     grunt.file.write(destination, data.content);
   };
 
+  // Set the Layout and Template value, should be per file
+  var loadLayouts = function(options) {
+    options.layout = options.layout ?
+      grunt.file.read(options.layoutFolder + "/"  + options.layout) : "{{{content}}}";
+
+    options.template = options.template ?
+      grunt.file.read(options.templatesFolder + "/"  + options.template) : "{{{content}}}";
+
+    return options;
+  };
+
+  // Compile the Template using Handlebars
   var compileTemplate = function(template, data) {
     var fn = Handlebars.compile(template);
     return fn(data);
