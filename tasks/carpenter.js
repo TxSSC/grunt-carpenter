@@ -72,13 +72,54 @@ module.exports = function(grunt) {
 
   };
 
+  /**
+   * Extract Metadata from the page head
+   */
+
+  var extractMetadata = function(content) {
+    var metadata, markdown;
+
+    if (content.slice(0, 3) === '---') {
+      var result = content.match(/^-{3,}\s([\s\S]*?)-{3,}(\s[\s\S]*|\s?)$/);
+      if ((result != null ? result.length : void 0) === 3) {
+        metadata = result[1];
+        markdown = result[2];
+      } else {
+        metadata = '';
+        markdown = content;
+      }
+    }
+
+    return { metadata: metadata, content: markdown };
+  };
+
+  /**
+   * Build an object from each line of the Metadata
+   */
+
+  var buildMetadata = function(content) {
+    var obj = {};
+
+    function grabLine(str) {
+      var match = str.match(/(\w+):\s+(.*)/);
+      obj[match[1]] = match[2];
+
+      str = str.substr(match[0].length).trim();
+      if(str.length > 0) grabLine(str);
+    }
+
+    grabLine(content);
+    return obj;
+  };
+
   var writeFile = function(path, options) {
-    var dest = options.destination || "",
-        content = marked(grunt.file.read(path)),
-        data = {},
+    var file = grunt.file.read(path),
+        metadata = extractMetadata(file),
+        dest = options.destination || "",
+        data = buildMetadata(metadata.metadata),
         destination;
 
-    data.content = content;
+    data.content = marked(metadata.content);
     grunt.util._.merge(data, options);
 
     path = path.split('content/')[1];
