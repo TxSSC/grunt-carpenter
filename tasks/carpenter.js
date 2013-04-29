@@ -88,6 +88,9 @@ module.exports = function(grunt) {
         metadata = '';
         markdown = content;
       }
+    } else {
+      metadata = '';
+      markdown = content;
     }
 
     return { metadata: metadata, content: markdown };
@@ -116,8 +119,12 @@ module.exports = function(grunt) {
     var file = grunt.file.read(path),
         metadata = extractMetadata(file),
         dest = options.destination || "",
-        data = buildMetadata(metadata.metadata),
+        data = {},
         destination;
+
+    if(metadata.metadata.length > 0) {
+      data = buildMetadata(metadata.metadata);
+    }
 
     data.content = marked(metadata.content);
     grunt.util._.merge(data, options);
