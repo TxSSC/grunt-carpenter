@@ -43,6 +43,7 @@ module.exports = function(grunt) {
             cwd: 'test/fixtures/',
             src: ['content/**/*.md', 'content/**/*.html'],
             dest: 'tmp',
+            ext: '.html'
           }
         ]
       }

@@ -20,7 +20,7 @@ grunt.loadNpmTasks('grunt-carpenter');
 Type: `String`
 Default: `"data.json"`
 
-Filename of the file that contains template information regarding the current file. This file fill be looked for upwards in the directory tree.
+Filename of the file that contains template information regarding the current file. This file fill be looked for upwards in the directory tree. Any keys apart from `layout` and `template` will be merged into the data object before templates are rendered.
 
 #### metadataDelimiter
 Type: `String`
@@ -58,6 +58,7 @@ carpenter: {
         cwd: 'test/fixtures/',
         src: ['content/**/*.md', 'content/**/*.html'],
         dest: 'tmp',
+        ext: '.html'
       }
     ]
   }

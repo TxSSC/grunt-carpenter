@@ -34,9 +34,9 @@ module.exports = function(grunt) {
 
         if(content) {
           grunt.file.write(f.dest, content);
-          grunt.log.oklns("Wrote file " + f.dest);
+          grunt.log.ok("Wrote file " + f.dest);
         } else {
-          grunt.log.errorlns("File " + file + " was not compiled.");
+          grunt.log.error("File " + file + " was not compiled.");
         }
       });
     });
@@ -101,7 +101,7 @@ module.exports = function(grunt) {
 
   function compileTemplates(p) {
     var content, templates = {},
-        files = grunt.file.expand({ cwd: p }, "*");
+        files = grunt.file.expand({ cwd: p }, "**/*.{html,mustache}");
 
     files.forEach(function(file) {
       content = grunt.file.read(path.join(p, file));
@@ -168,35 +168,37 @@ module.exports = function(grunt) {
    */
 
   function compile(p, options) {
-    var data, content, compiled,
-        fn = parser(p),
-        rData = readData(p, options.dataFilename),
-        templates = compileTemplates(options.templatePath);
+    var fn, data, rData, layout, template, templates;
+
+    fn = parser(p);
+    rData = readData(p, options.dataFilename);
+    templates = compileTemplates(options.templatePath);
 
     if(!rData) {
       return null;
     }
 
-    content = grunt.file.read(p);
-    data = extractMetadata(content, options);
-    data.content = fn(data.content);
+    layout = templates[rData.layout];
+    template = templates[rData.template];
+    delete rData.layout;
+    delete rData.template;
 
-    if(!templates[rData.layout]) {
+    if(!layout) {
       grunt.fail.warn("Unable to find layout " + rData.layout);
       return null;
     }
 
-    if(!templates[rData.template]) {
+    if(!template) {
       grunt.fail.warn("Unable to find template " + rData.template);
       return null;
     }
 
-    data.content = templates[rData.template](data);
-    compiled = templates[rData.layout](data);
-    grunt.verbose.write("Using layout " +
-      rData.layout + " and template " + rData.template);
+    data = extractMetadata(grunt.file.read(p), options);
+    data.content = fn(data.content);
+    data = grunt.util._.merge(data, rData);
+    data.content = template(data);
 
-    return compiled;
+    return layout(data);
   }
 
 };

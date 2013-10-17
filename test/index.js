@@ -14,7 +14,7 @@ exports.carpenter = {
 
     for(i = 0, len = tests.length; i < len; i++) {
       expect = grunt.file.read("test/expected/" + tests[i]);
-      result = grunt.file.read("tmp/" + tests[i]);
+      result = grunt.file.read("tmp/" + tests[i].replace(/md$/, "html"));
       test.equal(expect, result, "should correctly compile " + tests[i]);
     }
 
