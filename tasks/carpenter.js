@@ -1,4 +1,4 @@
-/*
+/**
  * grunt-carpenter
  * https://github.com/TxSSC/grunt-carpenter
  *
@@ -6,158 +6,197 @@
  * Licensed under the MIT license.
  */
 
-'use strict';
-
-var marked = require('marked'),
-    Handlebars = require('handlebars');
+var path = require("path"),
+    marked = require("marked"),
+    Mustache = require("mustache");
 
 module.exports = function(grunt) {
 
-  // Set Defaults, should be configurable in Multi-Task
-  var defaults = {
-    layoutFolder: "templates/layouts",
-    templatesFolder: "templates"
-  };
+  /**
+   * Carpenter grunt task
+   */
 
-  grunt.registerMultiTask('carpenter', 'Your task description goes here.', function() {
-    var self = this;
+  grunt.registerMultiTask("carpenter", "A static site generator for grunt.", function() {
+    var options = this.options({
+      dataFilename: "data.json",
+      metadataDelimiter: "---",
+      metadataFieldDelimiter: ":",
+      templatePath: "templates"
+    });
 
     this.files.forEach(function(f) {
+      var src = f.src.filter(function(file) {
+        return grunt.file.isFile(file);
+      });
 
-      f.src.forEach(function(item) {
+      src.forEach(function(file) {
+        var content = compile(file, options);
 
-        var options = grunt.util._.clone(defaults);
-        options.destination = f.dest;
-
-        if(grunt.file.isDir(item)) {
-          expandFolder(item, options);
+        if(content) {
+          grunt.file.write(f.dest, content);
+          grunt.log.oklns("Wrote file " + f.dest);
+        } else {
+          grunt.log.errorlns("File " + file + " was not compiled.");
         }
       });
     });
   });
 
-  var expandFolder = function(dir, options) {
-    var files = grunt.file.expand(dir + '/*'),
-        config = options || {},
-        folders = [];
-
-    // Check for a data.json file and load config
-    files.forEach(function(file) {
-      var filename = file.split('/').pop();
-      if(filename === 'data.json') {
-        var data = grunt.file.readJSON(file);
-        config = grunt.util._.merge(options, data);
-      }
-    });
-
-    // Create the filetree giving priority to top level files
-    files.forEach(function(file) {
-      if(grunt.file.isDir(file)) {
-        folders.push(file);
-        return false;
-      }
-
-      var filename = file.split('/').pop();
-      if(filename !== 'data.json') {
-        var data = grunt.util._.clone(config);
-        data = loadLayouts(data);
-        writeFile(file, data);
-      }
-    });
-
-    // Expand Each Folder
-    folders.forEach(function(folder) {
-      expandFolder(folder, config);
-    });
-
-  };
-
   /**
    * Extract Metadata from the page head
+   *
+   * @param {String} content
+   * @param {Object} options
+   * @return {Object}
    */
 
-  var extractMetadata = function(content) {
-    var metadata, markdown;
+  function extractMetadata(content, options) {
+    var meta, kDelim, mDelim, match, matcher;
 
-    if (content.slice(0, 3) === '---') {
-      var result = content.match(/^-{3,}\s([\s\S]*?)-{3,}(\s[\s\S]*|\s?)$/);
-      if ((result != null ? result.length : void 0) === 3) {
-        metadata = result[1];
-        markdown = result[2];
-      } else {
-        metadata = '';
-        markdown = content;
-      }
-    } else {
-      metadata = '';
-      markdown = content;
-    }
+    mDelim = options.metadataDelimiter;
+    kDelim = options.metadataFieldDelimiter;
+    matcher = new RegExp("^" + mDelim + "([\\s\\S]*?)" + mDelim + "$", "m");
+    match = content.match(matcher);
+    meta = match ? match[1] : "";
 
-    return { metadata: metadata, content: markdown };
-  };
+    return {
+      meta: parseMetadata(meta, kDelim),
+      content: content.slice(match ? match[0].length : 0)
+    };
+  }
 
   /**
    * Build an object from each line of the Metadata
+   *
+   * @param {String} content
+   * @param {String} delimiter
+   * @return {Object}
    */
 
-  var buildMetadata = function(content) {
-    var obj = {};
+  function parseMetadata(content, delimiter) {
+    var match, data = {},
+        matcher = new RegExp("^(\\w+)\\s*" + delimiter + "\\s*(.+)$", "m");
 
-    function grabLine(str) {
-      var match = str.match(/(\w+):\s+(.*)/);
-      obj[match[1]] = match[2];
+    while(content.length) {
+      match = content.match(matcher);
 
-      str = str.substr(match[0].length).trim();
-      if(str.length > 0) grabLine(str);
+      if(match) {
+        data[match[1].toLowerCase()] = match[2];
+        content = content.slice(match[0].length);
+        grunt.verbose.write("Found meta key " + match[1].toLowerCase());
+      } else {
+        break;
+      }
     }
 
-    grabLine(content);
-    return obj;
-  };
+    return data;
+  }
 
-  var writeFile = function(path, options) {
-    var file = grunt.file.read(path),
-        metadata = extractMetadata(file),
-        dest = options.destination || "",
-        data = {},
-        destination;
+  /**
+   * Compile all templates in the given path `p`
+   *
+   * @param {String} p path to layouts
+   * @return {Object}
+   */
 
-    if(metadata.metadata.length > 0) {
-      data = buildMetadata(metadata.metadata);
+  function compileTemplates(p) {
+    var content, templates = {},
+        files = grunt.file.expand({ cwd: p }, "*");
+
+    files.forEach(function(file) {
+      content = grunt.file.read(path.join(p, file));
+      templates[file] = Mustache.compile(content);
+      grunt.verbose.write("Compiled template " + path.join(p, file));
+    });
+
+    return templates;
+  }
+
+  /**
+   * Return the filetype parser for the file
+   *
+   * @param {String} p
+   * @return {Function}
+   */
+
+  function parser(p) {
+    var type = path.extname(p).slice(1);
+
+    if(type === "md" || type === "markdown") {
+      return marked;
     }
 
-    data.content = marked(metadata.content);
-    grunt.util._.merge(data, options);
+    return function(c) {
+      return c;
+    };
+  }
 
-    path = path.split('content/')[1];
-    destination = dest + '/' + path.split('.md')[0] + '.html';
+  /**
+   * Get the nearest data file to `p`
+   *
+   * @param {String} p
+   * @param {String} filename
+   * @return {Object}
+   */
 
-    if(options.template) {
-      data.content = compileTemplate(options.template, data);
+  function readData(p, filename) {
+    var data,
+        f = grunt.file.findup(filename, { cwd: path.dirname(p) });
+
+    if(!f) {
+      grunt.fail.warn("Unable to find " +
+        filename + " in path " + path.dirname(p) + ".");
+      return null;
     }
 
-    if(options.layout) {
-      data.content = compileTemplate(options.layout, data);
+    try {
+      data = grunt.file.readJSON(f);
+      grunt.log.debug("Using data file - " + f + " for file " + p);
+    } catch(e) {
+      grunt.fail.fatal(e.message);
     }
 
-    grunt.file.write(destination, data.content);
-  };
+    return data;
+  }
 
-  // Set the Layout and Template value, should be per file
-  var loadLayouts = function(options) {
-    options.layout = options.layout ?
-      grunt.file.read(options.layoutFolder + "/"  + options.layout) : "{{{content}}}";
+  /**
+   * Compile the file using data in file `p`
+   *
+   * @param {String} p path to file
+   * @param {Object} options
+   * @return {String}
+   */
 
-    options.template = options.template ?
-      grunt.file.read(options.templatesFolder + "/"  + options.template) : "{{{content}}}";
+  function compile(p, options) {
+    var data, content, compiled,
+        fn = parser(p),
+        rData = readData(p, options.dataFilename),
+        templates = compileTemplates(options.templatePath);
 
-    return options;
-  };
+    if(!rData) {
+      return null;
+    }
 
-  // Compile the Template using Handlebars
-  var compileTemplate = function(template, data) {
-    var fn = Handlebars.compile(template);
-    return fn(data);
-  };
+    content = grunt.file.read(p);
+    data = extractMetadata(content, options);
+    data.content = fn(data.content);
+
+    if(!templates[rData.layout]) {
+      grunt.fail.warn("Unable to find layout " + rData.layout);
+      return null;
+    }
+
+    if(!templates[rData.template]) {
+      grunt.fail.warn("Unable to find template " + rData.template);
+      return null;
+    }
+
+    data.content = templates[rData.template](data);
+    compiled = templates[rData.layout](data);
+    grunt.verbose.write("Using layout " +
+      rData.layout + " and template " + rData.template);
+
+    return compiled;
+  }
 
 };
