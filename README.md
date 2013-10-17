@@ -1,89 +1,73 @@
-# grunt-carpenter
+# grunt-includes [![Build Status](https://travis-ci.org/TxSSC/grunt-carpenter.png?branch=master)](https://travis-ci.org/TxSSC/grunt-carpenter)
 
-> Build static sites from markdown
+***Requires grunt ~0.4.0***
+
+A grunt task for building static sites from markdown and html.
 
 ## Getting Started
-This plugin requires Grunt `~0.4.0`
 
-If you haven't used [Grunt](http://gruntjs.com/) before, be sure to check out the [Getting Started](http://gruntjs.com/getting-started) guide, as it explains how to create a [Gruntfile](http://gruntjs.com/sample-gruntfile) as well as install and use Grunt plugins. Once you're familiar with that process, you may install this plugin with this command:
+Install this grunt plugin next to your project's *Gruntfile.js* with: `npm install grunt-carpenter --save-dev`
 
-```shell
-npm install grunt-carpenter --save-dev
-```
+Then add this line to your project's `Gruntfile.js`:
 
-One the plugin has been installed, it may be enabled inside your Gruntfile with this line of JavaScript:
-
-```js
+```javascript
 grunt.loadNpmTasks('grunt-carpenter');
 ```
 
-## The "carpenter" task
+## Options
 
-### Overview
-In your project's Gruntfile, add a section named `carpenter` to the data object passed into `grunt.initConfig()`.
-
-```js
-grunt.initConfig({
-  carpenter: {
-    options: {
-      // Task-specific options go here.
-    },
-    your_target: {
-      // Target-specific file lists and/or options go here.
-    },
-  },
-})
-```
-
-### Options
-
-#### options.separator
+#### dataFileName
 Type: `String`
-Default value: `',  '`
+Default: `"data.json"`
 
-A string value that is used to do something with whatever.
+Filename of the file that contains template information regarding the current file. This file fill be looked for upwards in the directory tree.
 
-#### options.punctuation
+#### metadataDelimiter
 Type: `String`
-Default value: `'.'`
+Default: `"---"`
 
-A string value that is used to do something else with whatever else.
+The character or set of characters that will show *grunt-carpenter* where the metadata for the particular file is.
 
-### Usage Examples
+#### metadataFieldDelimiter
+Type: `String`
+Default: `":"`
 
-#### Default Options
-In this example, the default options are used to do something with whatever. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result would be `Testing, 1 2 3.`
+The character or set of characters that will be used to split `key: value` metadata pairs.
 
-```js
-grunt.initConfig({
-  carpenter: {
-    options: {},
-    files: {
-      'dest/default_options': ['src/testing', 'src/123'],
-    },
-  },
-})
-```
+#### templatePath
+Type: `String`
+Default: `"templates"`
 
-#### Custom Options
-In this example, custom options are used to do something else with whatever else. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result in this case would be `Testing: 1 2 3 !!!`
+The path to templates used by the site.
 
-```js
-grunt.initConfig({
-  carpenter: {
+## Usage
+
+Typical usage is done by using grunt's built in dynamic file objects, see [building the files object dynamically](http://gruntjs.com/configuring-tasks#building-the-files-object-dynamically) for reference.
+
+An example from the *grunt-carpenter* `Gruntfile.js`:
+
+```javascript
+carpenter: {
+  base: {
     options: {
-      separator: ': ',
-      punctuation: ' !!!',
+      templatePath: "test/fixtures/templates"
     },
-    files: {
-      'dest/default_options': ['src/testing', 'src/123'],
-    },
-  },
-})
+    files: [
+      {
+        expand: true,
+        cwd: 'test/fixtures/',
+        src: ['content/**/*.md', 'content/**/*.html'],
+        dest: 'tmp',
+      }
+    ]
+  }
+}
 ```
 
-## Contributing
-In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
+## License (MIT)
 
-## Release History
-_(Nothing yet)_
+Copyright (c) 2013 TxSSC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

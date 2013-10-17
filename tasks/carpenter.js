@@ -2,7 +2,7 @@
  * grunt-carpenter
  * https://github.com/TxSSC/grunt-carpenter
  *
- * Copyright (c) 2013 Cody Stoltman
+ * Copyright (c) 2013 TxSSC
  * Licensed under the MIT license.
  */
 
