@@ -1,4 +1,4 @@
-# grunt-includes [![Build Status](https://travis-ci.org/TxSSC/grunt-carpenter.png?branch=master)](https://travis-ci.org/TxSSC/grunt-carpenter)
+# grunt-carpenter [![Build Status](https://travis-ci.org/TxSSC/grunt-carpenter.png?branch=master)](https://travis-ci.org/TxSSC/grunt-carpenter)
 
 ***Requires grunt ~0.4.0***
 
