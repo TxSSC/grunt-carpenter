@@ -184,12 +184,12 @@ module.exports = function(grunt) {
     delete rData.template;
 
     if(!layout) {
-      grunt.fail.warn("Unable to find layout " + rData.layout);
+      grunt.fail.warn("Unable to find layout " + layout);
       return null;
     }
 
     if(!template) {
-      grunt.fail.warn("Unable to find template " + rData.template);
+      grunt.fail.warn("Unable to find template " + template);
       return null;
     }
 
