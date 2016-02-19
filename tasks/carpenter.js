@@ -100,12 +100,14 @@ module.exports = function(grunt) {
    */
 
   function compileTemplates(p) {
-    var content, templates = {},
+    var templates = {},
         files = grunt.file.expand({ cwd: p }, "**/*.{html,mustache}");
 
     files.forEach(function(file) {
-      content = grunt.file.read(path.join(p, file));
-      templates[file] = Mustache.compile(content);
+      templates[file] = grunt.file.read(path.join(p, file));
+
+      // Cache template
+      Mustache.parse(templates[file]);
       grunt.verbose.write("Compiled template " + path.join(p, file));
     });
 
@@ -196,9 +198,9 @@ module.exports = function(grunt) {
     data = extractMetadata(grunt.file.read(p), options);
     data.content = fn(data.content);
     data = grunt.util._.merge(data, rData);
-    data.content = template(data);
+    data.content = Mustache.render(template, data);
 
-    return layout(data);
+    return Mustache.render(layout, data);
   }
 
 };
